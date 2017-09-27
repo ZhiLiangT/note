@@ -1,0 +1,108 @@
+1.蓝牙开发有两个主要的API
+
+BuletoothAdapter：本地蓝牙的适配器，也就是说当前应用程序所运行的Android设备上的蓝牙
+
+BuletoothDevice：远程的蓝牙适配器，也就是说你要连接的Android设备的适配器
+
+2.蓝牙权限：
+
+android.permission.BLUETOOTH:允许程序连接到已配对的蓝牙设备，请求连接/接收连接/传输数据需要改权限
+
+android.permission.BLUETOOTH_ADMIN：允许程序发现和配对蓝牙设备，该权限用来管理蓝牙设备，有了这个权限，应用才能使用
+
+本机的蓝牙设备，主要用于配对前的操作
+
+优先级 : BLUETOOTH权限是BLUETOOTH_ADMIN权限的前提, 如果没有BLUETOOTH权限, 就不能使用BLUETOOTH_ADMIN权限;
+
+-----BuletoothAdapter方法：
+
+cancelDiscovery()根据字面意思，是取消发现，也就是说当我们正在搜索设备的时候调用这个方法将不再继续搜索
+
+disable() 关闭蓝牙
+
+enable() 打开蓝牙，这个方法打开蓝牙，不会弹出提示，更多的时候我们需要问下用户是否打开
+
+打开蓝牙：弹出提示是否开启蓝牙
+Intemtenabler=new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+startActivityForResult(enabler,reCode);
+
+getRemoteDevice(String address)根据蓝牙地址获取远程蓝牙设备
+
+getState()获取本地蓝牙适配器的当前状态
+
+idDiscovering() 判断当前是否正在查找设备，是返回true
+
+isEnabled() 判断蓝牙是否打开，已打开返回true，否则，返回false
+
+listenUsingRfcommWithServiceRecord(String mame,UUID uuid)根据名称，UUID创建并返回BluetoothServerSocket，
+这是创建BluetoothSocket服务器端的第一步
+
+startDiscovery() 开始搜索，这是搜索的第一步
+
+-----BluetoothDevice方法
+
+createRfcommSocketToSericeRecord(UUID uuid) 根据uuid创建并返回一个BluetoothSocket
+
+getState() 蓝牙状态
+
+-------------------------------------------------------------------------------------------
+
+获取本地蓝牙适配器 如果具备蓝牙功能，返回BluetoothAdapter实例，否则返回null对象
+BluetoothAdapter mAdapter=BluetoothAdapter.getDefaultAdapter();
+
+打开蓝牙
+  if(!mAdapter.isEnabled()){
+//弹出对话框提示用户是后打开
+Intent enabler = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+startActivityForResult(enabler, REQUEST_ENABLE);
+      //不做提示，强行打开
+      // mAdapter.enable();
+}
+PS：目前在Android手机中，是不支持飞行模式下开启蓝牙的，如果蓝牙已经开启，
+那么蓝牙的开关状态会随着飞行模式的状态而发生改变
+
+关闭蓝牙：
+
+直接调用API函数disable()即可
+
+返回值：该函数会立即返回 true表示操作成功 ，false表示操作失败
+
+获取蓝牙相关信息
+
+getName：获取蓝牙设备的Name
+
+getAddress：获取蓝牙设备的硬件地址
+
+setName：设置蓝牙设备的Name
+
+getBondedDevices: 获取与本机蓝牙所有绑定的远程蓝牙信息，如果蓝牙为开启，该函数会返回一个空集合。
+
+checkBluetoothAddress(String address) 验证蓝牙设备MAC地址是否有效，所有设备地址的英文字母必须大写，45位
+返回true设备地址有效 返回false设备地址无效
+
+getRemoteDevice(String address) 以给定的MAC地址去创建一个BluetoothDevice类实例，及时改蓝牙地址不可见，
+也会产生一个BluetoothDevice类实例，返回 如果该蓝牙设备MAC地址不能被识别，其蓝牙Name为null
+如果MAC地址无效，跑出IllegalArgumentException
+
+蓝牙相关的广播
+Action值     					说明
+ACTION_STATE_CHANGED                    蓝牙状态值发生改变
+ACTION_SCAN_MODE_CHANGED         	蓝牙扫描状态(SCAN_MODE)发生改变
+ACTION_DISCOVERY_STARTED             	蓝牙扫描过程开始
+ACTION_DISCOVERY_FINISHED             	蓝牙扫描过程结束
+ACTION_LOCAL_NAME_CHANGED        	蓝牙设备Name发生改变
+ACTION_REQUEST_DISCOVERABLE       	请求用户选择是否使该蓝牙能被扫描
+PS：如果蓝牙没有开启，用户点击确定后，会首先开启蓝牙，继而设置蓝牙能被扫描。
+ACTION_REQUEST_ENABLE                  	请求用户选择是否打开蓝牙
+ACTION_FOUND  				(该常量字段位于BluetoothDevice类中，稍后讲到)
+                			说明：蓝牙扫描时，扫描到任一远程蓝牙设备时，会发送此广播。
+
+
+
+
+
+
+
+
+
+

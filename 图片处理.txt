@@ -1,0 +1,66 @@
+滤镜效果：
+
+自定义：通过使用颜色矩阵（ColorMatrix）来实现
+参考链接
+http://blog.csdn.net/qiushi_1990/article/details/50680297   //史上最全的Android 图片滤镜 colorMatrix自定义任意图片滤镜
+http://www.2cto.com/kf/201604/501081.html   //Paint之ColorMatrix与滤镜效果
+http://blog.csdn.net/luohai859/article/details/25388441   //图片色调饱和度、色相、亮度处理
+https://github.com/CyberAgent/android-gpuimage   //android-gpuimage  github地址
+
+https://github.com/YuAo/YUCIHighPassSkinSmoothing   //图片美化  人脸美颜
+
+android画板：
+http://www.2cto.com/kf/201401/273814.html  //android实现简单的画画板
+http://www.jianshu.com/p/ebda27f061e3    //Matrix(三) 神奇的ColorMatrix(图片的颜色与色相修改)
+
+图像处理：
+http://blog.csdn.net/duanliuchang/article/details/51548743   //Android图像处理（一）色调、饱和度、亮度
+
+颜色选择器：
+https://github.com/LarsWerkman/HoloColorPicker
+
+Android图像处理整理
+http://blog.csdn.net/luzhenyuxfcy/article/details/49427781
+
+[Android] 图像各种处理系列文章合集
+http://blog.csdn.net/eastmount/article/details/40689397
+
+Android加载大图——BitmapRegionDecoder
+http://www.jianshu.com/p/b0e2be9e0f8c
+Android 高清加载巨图方案 拒绝压缩图片
+http://blog.csdn.net/lmj623565791/article/details/49300989/
+
+Matrix的介绍
+http://www.cnblogs.com/qiengo/archive/2012/06/30/2570874.html
+
+备份：
+http://blog.csdn.net/u013064109/article/details/51416389
+http://blog.csdn.net/vivien2004/article/details/50220457
+
+
+//备份方法：用进度条控制RGB色调
+ private void initBitmap() {
+        if (mBitmap==null){
+            return;
+        }
+        //先加载出一张原图(baseBitmap)，然后复制出来新的图片(copyBitmap)来，因为andorid不允许对原图进行修改.
+        //baseBitmap= BitmapFactory.decodeResource(getResources(), R.drawable.link);
+        //既然是复制一张与原图一模一样的图片那么这张复制图片的画纸的宽度和高度以及分辨率都要与原图一样,copyBitmap就为一张与原图相同尺寸分辨率的空白画纸
+        copyBitmap=Bitmap.createBitmap(mBitmap.getWidth(), mBitmap.getHeight(), mBitmap.getConfig());
+        canvas=new Canvas(copyBitmap);//将画纸固定在画布上
+        paint=new Paint();//实例画笔对象
+        float[] colorArray=new float[]{
+                redValue,0,0,0,0,
+                0,greenValue,0,0,0,
+                0,0,blueValue,0,0,
+                0,0,0,1,0
+        };
+        ColorMatrix colorMatrix=new ColorMatrix(colorArray);//将保存的颜色矩阵的数组作为参数传入
+        ColorMatrixColorFilter colorFilter=new ColorMatrixColorFilter(colorMatrix);//再把该colorMatrix作为参数传入来实例化ColorMatrixColorFilter
+        paint.setColorFilter(colorFilter);//并把该过滤器设置给画笔
+        canvas.drawBitmap(mBitmap, new Matrix(), paint);//传如baseBitmap表示按照原图样式开始绘制，将得到是复制后的图片
+        surfaceView.setImageBitmap(copyBitmap);
+    }
+show in project structure dialog
+
+

@@ -1,0 +1,607 @@
+链接
+
+还在用Android自带的WebView组件？太Out了！
+http://www.jianshu.com/p/d3ef9c62b6c8
+
+JS与WebView交互存在的一些问题
+http://www.jianshu.com/p/93cea79a2443
+
+Android：最全面的 Webview 详解
+http://blog.csdn.net/carson_ho/article/details/52693322
+
+Android webView 缓存 Cache + HTML5离线功能 解决
+http://www.cnblogs.com/yaowen/p/5654168.html
+
+Android WebView实现离线加载功能 
+http://blog.csdn.net/shaohx0518/article/details/48031487
+
+WebView详解 
+http://blog.csdn.net/tanranran/article/details/45673683
+
+
+WebView的常用方法：
+--------------------------------------------------------------------
+1.webVIew的状态
+
+webVIew.onResume(); 	//激活WebView为活跃状态，能正常执行网页的响应
+
+webView.onPause();	//通过onPause动作通知内核暂时停止所有的动作，比如DOM的解析，plugin的执行，JavaScript的执行
+
+webView.pauseTimers()
+//当应用程序(存在webview)被切换到后台时，这个方法不仅仅针对当前的webview而是全局的全应用程序的webview
+//它会暂停所有webview的layout，parsing，javascripttimer。降低CPU功耗。
+
+webView.resumeTimers()；//恢复pauseTimers状态
+
+rootLayout.removeView(webView); 
+
+public void stopLoading()   //结束加载
+
+加载html字符串
+
+String htmlString = "<h1>Title</h1><p>This is HTML text<br /><i>Formatted in italics</i><br />Anothor Line</p>";
+// 载入这个html页面
+webView.loadData(htmlString, "text/html", "utf-8");
+
+webView.destroy();
+//销毁Webview
+//在关闭了Activity时，如果Webview的音乐或视频，还在播放。就必须销毁Webview
+//但是注意：webview调用destory时,webview仍绑定在Activity上
+//这是由于自定义webview构建时传入了该Activity的context对象
+//因此需要先从父容器中移除webview,然后再销毁webview:
+
+--------------------------------------------------------------------
+关于前进 / 后退网页
+
+//是否可以后退
+Webview.canGoBack() 
+//后退网页
+Webview.goBack()
+
+//是否可以前进                     
+Webview.canGoForward()
+//前进网页
+Webview.goForward()
+
+//以当前的index为起始点前进或者后退到历史记录中指定的steps
+//如果steps为负数则为后退，正数则为前进
+Webview.goBackOrForward(intsteps) 
+
+--------------------------------------------------------------------
+常见用法：Back键控制网页后退
+
+    问题：在不做任何处理前提下 ，浏览网页时点击系统的“Back”键,整个 Browser 会调用 finish()而结束自身
+    目标：点击返回后，是网页回退而不是推出浏览器
+    解决方案：在当前Activity中处理并消费掉该 Back 事件
+
+public boolean onKeyDown(int keyCode, KeyEvent event) {
+    if ((keyCode == KEYCODE_BACK) && mWebView.canGoBack()) { 
+        mWebView.goBack();
+        return true;
+    }
+    return super.onKeyDown(keyCode, event);
+}
+--------------------------------------------------------------------
+清除网页访问留下的缓存
+
+//由于内核缓存是全局的因此这个方法不仅仅针对webview而是针对整个应用程序.
+Webview.clearCache(true);
+
+//清除当前webview访问的历史记录
+//只会webview访问历史记录里的所有记录除了当前访问记录
+Webview.clearHistory()；
+
+//这个api仅仅清除自动完成填充的表单数据，并不会清除WebView存储到本地的数据
+Webview.clearFormData()；
+--------------------------------------------------------------------
+ ------
+|常用类|
+ ------
+--------------------------------------------------------------------
+WebSettings类
+
+    作用：对WebView进行配置和管理
+    配置步骤 & 常见方法：
+
+添加网络权限
+<uses-permission android:name="android.permission.INTERNET"/>
+
+生成一个WebView组件（有两种方式）
+
+//方式1：直接在在Activity中生成
+WebView webView = new WebView(this)
+
+//方法2：在Activity的layout文件里添加webview控件：
+WebView webview = (WebView) findViewById(R.id.webView1);
+
+进行配置-利用WebSettings子类（常见方法）
+
+//声明WebSettings子类
+WebSettings webSettings = webView.getSettings();
+
+//如果访问的页面中要与Javascript交互，则webview必须设置支持Javascript
+webSettings.setJavaScriptEnabled(true);  
+
+//支持插件，不推荐，因为adobe不再开发新的flash移动版了
+webSettings.setPluginsEnabled(true); 
+
+//设置自适应屏幕，两者合用
+webSettings.setUseWideViewPort(true); //将图片调整到适合webview的大小 
+webSettings.setLoadWithOverviewMode(true); // 缩放至屏幕的大小
+
+//缩放操作
+webSettings.setSupportZoom(true); //支持缩放，默认为true。是下面那个的前提。
+webSettings.setBuiltInZoomControls(true); //设置内置的缩放控件。若为false，则该WebView不可缩放
+webSettings.setDisplayZoomControls(false); //隐藏原生的缩放控件
+放大或缩小网页
+webview.setInitialScale(300);//放大300显示网页
+是否显示缩放按钮，就是那个放大镜和缩小镜
+webSettings.setBuiltInZoomControls(false); // 不显示缩放按钮
+
+//其他细节操作
+webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); //关闭webview中缓存 
+webSettings.setAllowFileAccess(true); //设置可以访问文件 
+webSettings.setJavaScriptCanOpenWindowsAutomatically(true); //支持通过JS打开新窗口 
+webSettings.setLoadsImagesAutomatically(true); //支持自动加载图片
+webSettings.setDefaultTextEncodingName("utf-8");//设置编码格式
+webSettings.setBlockNetworkImage(true); // 不加载网页图片资源
+webView.setSaveEnabled(true);//保存数据
+
+
+//是否允许在webView中访问内容URL，默认允许
+setAllowContentAccess(boolean allow)
+
+是否允许访问文件，默认允许
+setAllowFileAccess(boolean allow)
+
+是否允许运行在一个file schem URL环境下的JavaScript访问来自其他任何来源的内容，包括
+
+--------------------------------------------------------------------
+设置WebView缓存
+
+当加载 html 页面时，WebView会在/data/data/包名目录下生成 database 与 cache 两个文件夹
+请求的 URL记录保存在 WebViewCache.db，而 URL的内容是保存在 WebViewCache 文件夹下
+是否启用缓存：
+
+    	WebView.getSettings().setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK); //优先使用缓存: 
+        //缓存模式如下：
+        LOAD_CACHE_ONLY:  不使用网络，只读取本地缓存数据
+
+	LOAD_DEFAULT:  根据cache-control决定是否从网络上取数据。
+
+	LOAD_CACHE_NORMAL: API level 17中已经废弃, 从API level 11开始作用同LOAD_DEFAULT模式
+
+	LOAD_NO_CACHE: 不使用缓存，只从网络获取数据.
+
+	LOAD_CACHE_ELSE_NETWORK，只要本地有，无论是否过期，或者no-cache，都使用缓存中的数据。
+
+
+//不使用缓存: 
+    WebView.getSettings().setCacheMode(WebSettings.LOAD_NO_CACHE);
+
+结合使用（离线加载）
+
+//判断当前的网络状态
+if (NetStatusUtil.isConnected(getApplicationContext())) {
+    webSettings.setCacheMode(WebSettings.LOAD_DEFAULT);//根据cache-control决定是否从网络上取数据。
+} else {
+    webSettings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);//没网，则从本地获取，即离线加载
+}
+
+webSettings.setDomStorageEnabled(true); // 开启 DOM storage API 功能 ，开启DOM形式存储
+webSettings.setDatabaseEnabled(true);   //开启 database storage API 功能 ，开启数据库形式存储
+webSettings.setAppCacheEnabled(true);//开启 Application Caches 功能 //开启缓存功能
+websetting.setAppCachePath(appCacheDir);//设置缓存数据的存储地址
+websetting.setAppCacheMaxSize(size);      //设置缓存文件大小，但现在已不再提倡这个方法
+
+String cacheDirPath = getFilesDir().getAbsolutePath() + APP_CACAHE_DIRNAME;
+webSettings.setAppCachePath(cacheDirPath); //设置  Application Caches 缓存目录
+
+注意： 每个 Application 只调用一次 WebSettings.setAppCachePath()，WebSettings.setAppCacheMaxSize()
+
+--------------------------------------------------------------------
+
+WebViewClient类
+	 
+作用：处理各种通知 & 请求事件
+常见方法： 
+
+作用：打开网页时不调用系统浏览器， 而是在本WebView中显示；在网页上的所有加载都经过这个方法,这个函数我们可以做很多操作。
+
+常见方法1：shouldOverrideUrlLoading()
+
+//步骤1. 定义Webview组件
+Webview webview = (WebView) findViewById(R.id.webView1);
+
+//步骤2. 选择加载方式
+  //方式1. 加载一个网页：
+  webView.loadUrl("http://www.google.com/");
+
+  //方式2：加载apk包中的html页面
+  webView.loadUrl("file:///android_asset/test.html");
+
+  //方式3：加载手机本地的html页面
+   webView.loadUrl("content://com.android.htmlfileprovider/sdcard/test.html");
+
+//步骤3. 复写shouldOverrideUrlLoading()方法，使得打开网页时不调用系统浏览器， 而是在本WebView中显示
+    webView.setWebViewClient(new WebViewClient(){
+      @Override
+      public boolean shouldOverrideUrlLoading(WebView view, String url) {
+          view.loadUrl(url);
+      return true;
+      }
+  });
+
+常见方法2：onPageStarted()
+
+作用：开始载入页面调用的，我们可以设定一个loading的页面，告诉用户程序在等待网络响应。
+
+ webView.setWebViewClient(new WebViewClient(){
+      @Override
+      public void  onPageStarted(WebView view, String url, Bitmap favicon) {
+         //设定加载开始的操作
+      }
+  });
+
+常见方法3：onPageFinished()
+
+作用：在页面加载结束时调用。我们可以关闭loading 条，切换程序动作。
+
+ webView.setWebViewClient(new WebViewClient(){
+      @Override
+      public void onPageFinished(WebView view, String url) {
+         //设定加载结束的操作
+      }
+  });
+
+常见方法4：onLoadResource()
+
+作用：在加载页面资源时会调用，每一个资源（比如图片）的加载都会调用一次。
+
+webView.setWebViewClient(new WebViewClient(){
+      @Override
+      public boolean onLoadResource(WebView view, String url) {
+         //设定加载资源的操作
+      }
+  });
+
+常见方法5：onReceivedError（）
+
+作用：加载页面的服务器出现错误时（如404）调用。
+
+App里面使用webview控件的时候遇到了诸如404这类的错误的时候，若也显示浏览器里面的那种错误提示页面就显得很丑陋了，
+那么这个时候我们的app就需要加载一个本地的错误提示页面，即webview如何加载一个本地的页面
+
+
+//步骤1：写一个html文件（error_handle.html），用于出错时展示给用户看的提示页面
+//步骤2：将该html文件放置到代码根目录的assets文件夹下
+
+//步骤3：复写WebViewClient的onRecievedError方法
+//该方法传回了错误码，根据错误类型可以进行不同的错误分类处理
+    webView.setWebViewClient(new WebViewClient(){
+      @Override
+      public void onReceivedError(WebView view, int errorCode, String description, String failingUrl){
+switch(errorCode)
+                {
+                case HttpStatus.SC_NOT_FOUND:
+                    view.loadUrl("file:///android_assets/error_handle.html");
+                    break;
+                }
+            }
+        });
+
+常见方法6：onReceivedSslError()
+
+作用：处理https请求 
+
+webView默认是不处理https请求的，页面显示空白，需要进行如下设置： 
+
+webView.setWebViewClient(new WebViewClient() {    
+        @Override    
+        public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {    
+            handler.proceed();    //表示等待证书响应
+        // handler.cancel();      //表示挂起连接，为默认方式
+        // handler.handleMessage(null);    //可做其他处理
+        }    
+    });   
+
+常见方法7：shouldInterceptRequest（WebView view, String url）
+
+拦截所有的url请求，若返回非空，则不再进行网络资源请求，而是使用返回的资源数据
+
+public WebResourceResponse shouldInterceptRequest(WebView view, String url) { 
+
+-------------------------------------------------------------------------------
+ onJsAlert类
+
+作用：辅助 WebView 处理 Javascript 的对话框,网站图标,网站标题等等。
+
+常见使用：
+
+常见方法1： onProgressChanged（）
+
+作用：获得网页的加载进度并显示
+
+webview.setWebChromeClient(new WebChromeClient(){
+
+      @Override
+      public void onProgressChanged(WebView view, int newProgress) {
+          if (newProgress < 100) {
+              String progress = newProgress + "%";
+              progress.setText(progress);
+            } else {
+	    
+            }
+      }
+});
+
+常见方法2： onReceivedTitle（）
+
+作用：获取Web页中的标题 
+
+每个网页的页面都有一个标题，比如www.baidu.com这个页面的标题即“百度一下，你就知道”，
+
+那么如何知道当前webview正在加载的页面的title并进行设置呢？
+
+webview.setWebChromeClient(new WebChromeClient(){
+
+    @Override
+    public void onReceivedTitle(WebView view, String title) {
+       titleview.setText(title)；
+    }
+}
+
+如何知道当前webview正在加载的页面的title
+
+webview.setWebChromeClient(new WebChromeClient(){
+
+    @Override
+    public void onReceivedTitle(WebView view, String title) {
+
+       titleview.setText(title);//a textview
+    }
+});
+
+常见方法3：onJsAlert()
+
+作用：处理JS警告框
+
+ @Override
+public boolean onJsAlert(WebView view, String url, String message, final JsResult result) {
+
+      // 构架一个builder来显示网页中的对话框
+      Builder builder = new Builder(MainActivity.this);
+
+      builder.setTitle("提示对话框");
+
+      builder.setMessage(message);
+
+      builder.setPositiveButton(android.R.string.ok, new AlertDialog.OnClickListener() {
+
+           @Override
+           public void onClick(DialogInterface dialog, int which) {
+                // 点击确定按钮之后，继续执行网页中的操作
+                result.confirm();
+           }
+      });
+
+      builder.setCancelable(false);
+
+      builder.create();
+
+      builder.show();
+
+      return true;
+}
+
+
+-----------------------------------------------------------------------------------
+
+禁止WebView的长按复制功能：
+
+webView.setOnLongClickListener(new View.OnLongClickListener){
+	
+	@Override
+	public boolean onLongClick(View view){
+		return true;
+	}
+}
+返回true表示禁止长按事件，返回false表示不禁止。
+
+------------------------------------------------------------------------------------
+  ------------
+ |WebView 优化|
+  ------------
+------------------------------------------------------------------------------------
+
+一.优化网页加载速度
+
+默认情况html代码下载webView后，webkit开始解析网页各个节点，发现有外部样式文件或者外部脚本文件时，
+
+异步发起网络请求下载文件，但如果在这之前也有解析到image节点，那是比也会发起网络请求下载相应的图片。
+
+在网络情况比较差的情况下，过多的网络请求就会造成宽带紧张，影响到CSS或js文件的加载时间，
+
+造成页面空包loading过久，解决的办法就是告诉webview先不要自动加载图片，等页面finish后再发起图片加载。
+
+设置webview，先禁止加载图片
+
+webSetting websetting=webview.getSettings();
+
+//图片加载
+if(Build.VERSION.SDK_INT >= 19){
+    webSettings.setLoadsImagesAutomatically(true);
+}else {
+    webSettings.setLoadsImagesAutomatically(false);
+}
+
+覆写webviewClient的onPageFinished()方法，页面加载结束后再加载图片
+
+@Override
+public void onPageFinished(WebView view, String url) {
+
+    super.onPageFinished(view, url);
+
+    if (!view.getSettings().getLoadsImagesAutomatically()) {
+
+        view.getSettings().setLoadsImagesAutomatically(true);
+    }
+}
+
+PS：4.4以上系统在onPageFinished是在恢复加载时，如果存在多张图片引用时相同的src时，会只有一个image标签得到加载，
+
+因而对于这样的系统我们就直接加载。
+
+二 硬件加速页面闪烁问题
+
+4.0以上的系统我们开启赢家加速后，webview渲染页面更加快速，拖动也更加流畅，但是有个副作用就是，当webView视图
+
+被整体遮住一块，然后突然恢复时，（比如使用SlideMenu将WebView从侧边滑出来时，）这个过渡期会出现白块同时界面闪烁。
+
+解决这个问题的方法是在过渡期前将WebView的硬件加速临时关闭，过渡期后再开启
+
+过度前关闭硬件加速
+
+if(Build.VERSION.SDK_INT > Build.VERSION_CODES.HONEYCOMB){
+    mWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+}
+
+过度前开启硬件加速
+
+if(Build.VERSION.SDK_INT > Build.VERSION_CODES.HONEYCOMB){
+    mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+}
+
+三.选择合适的WebView缓存
+
+缓存机制 			优势				适用场景
+
+Dom Storage		    HTTP协议层支持		     静态文件的缓存
+
+web SQL Database            存储，管理负责结构数据           临时，简单数据的缓存Coolies的扩展
+
+AppCache 		    方便构建离线APP                  离线App，静态文件缓存，不推荐使用
+
+IndexedDB 		    存储任何类型数据，		     结构，关系复杂的数据存储，web SQLDatabase的替代
+			    使用简单，支持索引
+
+File System API		    支持文件系统的操作		     数据适合以文件进行管理的场景，Android系统还不支持
+
+四.常用资源预加载
+
+缓存技术能优化二次启动WebView的加载速度，那么首次加载H5页面的速度改怎么优化呢？
+
+一次加载过程会有许多外部依赖的 JS、CSS、图片等资源需要下载，那我们能不能提前将这些资源下载好，等H5 加载时直接替换呢？
+
+好在从 API 11（Android 3.0）开始，WebView 引入了 shouldInterceptRequest 函数，这个函数有两种重载。
+
+public WebResourceResponse shouldInterceptRequest(WebView webView, String url) 从 API 11 引入，API 21 废弃
+
+public WebResourceResponse shouldInterceptRequest (WebView view, WebResourceRequest request) 从 API 21 开始引入
+
+考虑到目前大多数 App 还要支持 API 14，所以还是使用 shouldInterceptRequest (WebView view, String url) 为例。
+
+mWebView.setWebViewClient(new WebViewClient() {
+            
+	@Override
+            
+	public WebResourceResponse shouldInterceptRequest(WebView webView, final String url) {
+ 
+               	WebResourceResponse response = null;
+                  
+	       	// 检查该资源是否已经提前下载完成。我采用的策略是在应用启动时，用户在 wifi 的网络环境下    // 提前下载 H5 页面需要的资源。
+               
+	      	boolean resDown = JSHelper.isURLDownValid(url);
+                
+		if (resDown) {
+
+                    jsStr = JsjjJSHelper.getResInputStream(url);
+                    
+		if (url.endsWith(".png")) {
+
+                        response = getWebResourceResponse(url, "image/png", ".png");
+                    } else if (url.endsWith(".gif")) {
+
+                        response = getWebResourceResponse(url, "image/gif", ".gif");
+
+                    } else if (url.endsWith(".jpg")) {
+
+                        response = getWebResourceResponse(url, "image/jepg", ".jpg");
+
+                    } else if (url.endsWith(".jepg")) {
+
+                        response = getWebResourceResponse(url, "image/jepg", ".jepg");
+
+                    } else if (url.endsWith(".js") && jsStr != null) {
+
+                        response = getWebResourceResponse("text/javascript", "UTF-8", ".js");
+
+                    } else if (url.endsWith(".css") && jsStr != null) {
+
+                        response = getWebResourceResponse("text/css", "UTF-8", ".css");
+
+                    } else if (url.endsWith(".html") && jsStr != null) {
+
+                        response = getWebResourceResponse("text/html", "UTF-8", ".html");
+
+                    }
+
+                
+		}
+
+                // 若 response 返回为 null , WebView 会自行请求网络加载资源。
+ 
+                return response;
+
+            }
+
+        });
+
+
+private WebResourceResponse getWebResourceResponse(String url, String mime, String style) {
+
+        WebResourceResponse response = null;
+
+        try {
+
+            response = new WebResourceResponse(mime, "UTF-8", new FileInputStream(new File(getJSPath() + TPMD5.md5String(url) + style)));
+
+        } catch (FileNotFoundException e) {
+
+            e.printStackTrace();
+
+        }
+
+        return response;
+
+    }
+
+
+public String getJsjjJSPath() {
+
+        String splashTargetPath = JarEnv.sApplicationContext.getFilesDir().getPath() + "/JS";
+
+        if (!TPFileSysUtil.isDirFileExist(splashTargetPath)) {
+
+            TPFileSysUtil.createDir(splashTargetPath);
+
+        }
+
+        return splashTargetPath + "/";
+
+   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,153 @@
+参考链接：
+http://blog.csdn.net/huaxun66/article/details/52352469
+http://www.jianshu.com/p/0c863bbde8eb
+http://www.cnblogs.com/leaven/p/3462455.html
+
+
+
+MotionEvent事件对象
+我们一般是在VIew的onTouch方法中处理MotionEvent对象的
+
+主要的事件类型有：
+ACTION_DOWN:表示用户开始触摸
+ACTION_MOVE:表示用户在移动
+ACTION_UP:表示用户抬起了手指
+ACTION_CANCEL:表示手势取消了
+还有一个不常见的
+ACTION_OUTSIDE:表示用户触碰超出了正常的UI边界
+
+一般来说，如果一个子视图接受可父视图分发给它的ACTION_DOWN事件，那么于ACTION_DOWN事件相关的事件流
+就都要分发给这个子视图，但是如果父视图希望拦截其中的一些事件，不再继续转发事件给这个子视图的话，那么
+就需要给子视图一个ACTION_CANCEL事件。
+onInterceptTouchEvent()返回true,从子view拿回处理事件的控制权时，
+就会给子view发一个ACTION_CANCEL事件，子view就再也不会收到后续事件了。
+
+事件的发生位置：
+getX()  获得事件发生时，触摸的中间区域在屏幕的X轴
+getY()  获得事件发生时，触摸的中间区域在屏幕的Y轴
+
+getX()和getY()：由这两个函数获得的x,y值是相对的坐标值，相对于消费这个事件的视图的左上点的坐标
+
+getRawX()和getRawY()；有这两个函数获得的x,y值是绝对坐标，是相对于屏幕的。
+
+相关的方法
+
+getAction():返回动作类型
+getX/getY:获得事件发生时，触摸的中间区域的X/Y坐标，由这两个函数获得的X/Y坐标值是相对坐标，相对于消费这个事件的
+视图的左上角的坐标。
+getRawX()/getRawY():由这两个函数获得的X/Y值是绝对坐标，是相对于屏幕的。
+getSIze():指压范围
+getPressure()压力值，0-1之间，看情况，很可能始终返回1，具体的级别由驱动和物理硬件决定的 
+getEdgeFlags()  当事件类型是ActionDown时可以通过此方法获得边缘标记
+getDownTime() ：按下开始时间 
+getEventTime() ： 事件结束时间 
+getActionMasked()：多点触控获取经过掩码后的动作类型 
+getActionIndex()：多点触控获取经过掩码和平移后的索引 
+getPointerCount()：获取触控点的数量，比如2则可能是两个手指同时按压屏幕 
+getPointerId(nID)：对于每个触控的点的细节，我们可以通过一个循环执行getPointerId方法获取索引 
+getX(nID)：获取第nID个触控点的x位置
+getY(nID)：获取第nID个触控点的y位置 
+getPressure(nID)：获取第nID个触控点的压力
+
+单点触碰
+单点触控时用8位二进制数代表动作类型如0x01，这时getAction的返回值就是ACTION_UP
+
+
+多点触碰
+多点触控因为增加了本次触摸的索引 所以改为16位二进制数，如0x0001，低八位代表动作的类型，高八位代表索引。
+这时获取动作类型就需要用掩码盖掉高八位，而获取索引需要用掩码盖掉低八位然后在右移8位，如下
+public static final int ACTION_MASK = 0xff;
+public static final int ACTION_POINTER_INDEX_MASK = 0xff00;
+public static final int ACTION_POINTER_INDEX_SHIFT = 8;
+
+public final int getActionMasked() {
+    return mAction & ACTION_MASK;
+}
+
+public final int getActionIndex() {
+    return (mAction & ACTION_POINTER_INDEX_MASK) >> ACTION_POINTER_INDEX_SHIFT;
+}
+
+
+位置可以表示多个触碰点的动作，MotionEvent中引入了Pointer的改变，一个Pointer就代表一个触摸点，
+每个Pointer都有自己的事件类型，也有自己的横轴坐标值，一个MOtionEvent对象中可能会存储多个Pointer的相关信息，
+每个Pointer都会有一个自己的id和index。pointer的id在整个事件流中是不会发生变化的，但是index会发生变化
+MotionEvent类中很多方法都是可以传入一个int值作为参数的，其实传入的就是pointer的index的值，比如，
+getX（pointerIndex）和getY（pointerIndex），此时，他们返回的就是index所代表的触摸点相关的事件坐标值
+由于pointer的index值在不同的MotionEvent对象中会发生变化，但是id值却不会变化。所以，当我们要记录一个触摸点的事件流时，
+就只需要保存其id,然后使用findPointerIndex(int)来获得其index值，然后再获得其他信息。
+
+除了Pointer的改变，MotionEvnent 还引入了两个事件类型：
+ACTION_POINTER_DOWN:代表用户又使用一个手指触摸到屏幕上，也就是说，在已经有一个触摸点的情况下，
+又新出现了一个触摸点。
+ACTION_POINTER_UP:代表用户的一个手指离开了触摸屏，但是还有其他手指在触摸屏上。也就是说在多个触摸点存在的情况下
+其中一个触摸点消失了。它与ACTION_UP的区别就是，它是在多个触摸点中的一个触摸点消失的时候产生，而
+ACTION_UP可以说是最后一个触摸点消失时产生的.
+
+getAction和getActionMasked
+一个MotionEvent对象中可以包含多个触摸点的事件，当MotionEvent对象只包含一个触摸点的事件时，
+上边两个函数的结果是相同的，但是当包含多个触摸点时，两者的结果就不同了
+getAction获得的int值是由pointer的index值和事件类型值组合而成的，而getActionWithMasted
+则只返回事件的类型值
+
+
+触摸事件onTouch/onTouchEvent
+
+设置触摸事件有两种方式，一种是委托式，一种是回调式
+第一种就是将事件的处理委托给监听器处理，你可以定义一个View.OnTouchListener就扣的子类作为监听器，
+实现它是onTouch方法，onTouch方法接收一个MotionEvent参数和一个View的参数。如下：
+@Override  
+    protected void onCreate(Bundle savedInstanceState) {  
+        super.onCreate(savedInstanceState);  
+        setContentView(R.layout.activity_main);  
+        //获取TextView、MyView对象
+        tvInfo=(TextView)findViewById(R.id.info);  
+        myView=(MyView)findViewById(R.id.myView);
+        myView.setEnabled(true); 
+        //注册OnTouch监听器  
+        myView.setOnTouchListener(new myOnTouchListener());  
+    }  
+    //OnTouch监听器  
+    private class myOnTouchListener implements OnTouchListener{  
+        @Override  
+        public boolean onTouch(View v, MotionEvent event){
+            Log.d("TAG", "onTouch action="+event.getAction());  
+            String sInfo="X="+String.valueOf(event.getX())+"  Y="+String.valueOf(event.getY()); 
+            tvInfo.setText(sInfo);  
+            return false;  
+        }  
+    }     
+
+第二种是重写View类（Android中任何一个控件和Activity都是直接或者间接的继承与View），自定本身的onTouchEvent()方法，也就是控件自己处理事件
+，onTouchEvent方法仅接收MotionEvent参数，这是因为监听器可以监听多个View控件的事件。
+public class MyView extends View{
+    @Override  
+    public boolean onTouchEvent(MotionEvent ev) {  
+        int action = ev.getAction();     
+        switch (action) {   
+        case MotionEvent.ACTION_DOWN: 
+             Log.d("TAG", "ACTION_DOWN");
+             break;     
+        case MotionEvent.ACTION_MOVE: 
+             Log.d("TAG", "ACTION_MOVE");
+             break;      
+        case MotionEvent.ACTION_UP: 
+             Log.d("TAG", "ACTION_UP");
+             break;
+        }      
+        return true;  
+    }  
+}
+
+
+
+
+
+
+
+
+
+
+
+
+

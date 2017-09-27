@@ -1,0 +1,240 @@
+Service的声明周期
+
+-----手动调用的方法
+
+startService() 		启动服务
+stopService()		关闭服务
+bindService()		绑定服务
+unbindService()		解绑服务
+
+-----自动调用的方法
+
+onCreate()		创建服务
+onStartCommand()	开始服务
+onDestroy()		销毁服务
+onBind()		绑定服务
+onUnbind()		解绑服务
+
+-----注意事项
+
+1. 手动调用startService()后，自动调用内部方法：onCreate(),onStartCommand()
+
+2. 如果一个Service被startService()多次启动，那么onCreate()也只会调用一次，
+onStartCommand()调用次数=startService()调用次数
+
+3. 手动调用stopService()后，自动调用内部方法onDestory()，如果一个Serviec被启动且被绑定，
+如果在没有解绑的前提下使用stopService()是无法停止服务的
+
+4. 手动调用bindService()后，自动调用内部方法：onCreate(),onBind()
+
+5. startService()和stopService()智能开启和关闭Service,无法操作Service，bindService()和unbindService()可以操作Service
+
+6. startService开启的Service,调用者退出后Service仍然存在，BindService开启的Service，调用者退出后，Service随着调用者销毁
+
+-----Service的分类
+
+按运行地点分：本地服务和远程服务
+
+按运行类型分：前台服务和后台服务
+
+按功能分：可通信服务和不可通信服务
+
+-----特点：
+
+本地服务： 运行在主线程，主进程被种植后，服务也会停止，优：节约系统资源，通信方便：由于在同一进程，不需要IPC和AIDL
+缺：主进程被终止后，服务也会终止，场景：需要衣服某个进程的服务，如音乐播放
+
+远程服务： 运行在独立进程，服务常驻后台，不受其他Activity影响，优：灵活常驻后台 缺：消耗资源，单独进程，
+使用AIDL进行IPC复杂，场景：系统级别服务
+
+前台服务：在通知栏显示通知，场景：服务使用时需要让用户知道并进行相关操作，如音乐播放服务
+
+后台服务：处于后台的服务，场景：服务使用时不需要让用户知道并进行相关操作，如天气更新，日期同步
+
+-----Service和Thread的区别
+
+后台的定义：后台任务运行完全不依赖UI，即使Activity被销毁，或者程序被关闭，只要进程还在，后台任务就可以继续运行
+
+Service：执行异步任务， 运行在主线程（不能处理耗时操作，否则ANR） 运行范围：进程（依赖于进程而非Activity）
+完全不依赖于UI，只要进程还在，Service就可以继续运行，所有Activity都可以与Service关联获得Binder实例并操作其中的方法，
+若要处理耗时操作，则在Service里创建Thread子线程执行
+
+
+Thread：执行异步任务 运行在工作现场 运行范围：activity（依赖于某个Activity）在一个Activity中创建的子线程，
+另一个Activity无法对其进行操作，Activity很难对Thread进行控制，当Activity被销毁之后，就无法再获取到之前创建的子线程实例
+
+PS：一般来说，会将Service和Thread联合着用，即在Service中再创建一个子线程（工作线程）去处理耗时操作逻辑，如下代码：
+
+@Override  
+
+public int onStartCommand(Intent intent, int flags, int startId) {  
+
+
+	//新建工作线程
+   
+
+ 	new Thread(new Runnable() {  
+    
+    
+		@Override  
+        
+		public void run() {  
+     
+       
+		// 开始执行后台任务  
+  
+      
+		}
+
+	}).start();  
+    
+
+	return super.onStartCommand(intent, flags, startId);  
+
+
+}  
+
+
+
+class MyBinder extends Binder {  
+   
+ 
+	public void service_connect_Activity() {  
+ 
+ 
+		//新建工作线程
+        
+
+		new Thread(new Runnable() {  
+    
+        
+			@Override  
+            
+			public void run() {  
+   
+             
+				// 执行具体的下载任务  
+            
+			}  
+
+       
+	 	}).start();  
+   
+ 	
+	}  
+
+
+
+}
+
+IntentService的使用
+
+IntentService是Android里面的一个封装类，集成自四大组件之一的Service
+
+主要作用：处理异步请求，实现多线程
+
+注意：若启动IntentService多次，那么每个耗时操作则以队列的方式在IntentService的onHandleIntent回调方法中一次执行，执行完自动结束
+
+步骤：
+
+1.定义IntentService的子类，传入线程名称，复写onHandleIntent()方法
+
+2.在Manifest.xml中注册服务
+
+3.在Activity中开启Service服务
+
+源码分析：
+IntentService本质是采用Handler&HandlerThread方式：
+
+1.通过HandlerThread单独开启一个名为IntentServie的线程
+
+2.创建一个名叫ServiceHandler的内部Handler
+
+3.把内部Handler与HandlerThread所对应的子线程进行绑定
+
+4.通过onStartCommand()传递给服务intent，一次插入到工作队列中，并逐个发送给onHandlerIntent()
+
+5.通过onHandleIntent()来一次处理所有intent请求对象所对应的任务
+
+注意事项：工作任务队列是顺序执行的
+
+如果一个任务正在IntentSercice中执行，此时你在发送一个新的任务请求，这个新的任务会之一直等待知道前面一个任务执行完毕才开始执行。
+
+原因：
+
+1.由于onCreate()方法只会调用一次，所以只会创建一个工作线程
+
+2.当多次调用startService(Intent)时（onStartCommand也会调用多次）其实并不会创建新的工作线程，只是把消息加入消息队列中等待执行，
+
+所以，多次启动IntentService会按顺序执行事件
+
+3.如果服务停止，会清楚消息队列中的消息，后续的事件得不到执行
+
+注意事项： 不建议通过bindService()启动IntentService
+
+原因：在IntentService中，inBind()默认是返回null的，而采用bindService()启动IntentSrevice的声明周期是
+
+onCreate()->onBind()->onunbind()->onDestory()
+
+并不会调用onStart()或者onStartCommand()方法，所以不会讲消息发送到消息队列，那么onHandleIntent将不会回调，
+
+及无法实现多线程的操作
+
+IntentService的使用场景：
+
+线程任务需要按顺序，在后台执行的使用场景 最常见的场景：离线下载
+
+由于所有的任务都在同一个Thread looper里面来做，所以不符合多个数据同时请求的场景。
+
+对比&区：
+
+从属性&作用上来说
+
+Service：依赖于应用程序的主线程（不是独立的进程or线程）
+
+所以不建议在Srvice中编写耗时的逻辑和操作，否侧会引起ANR
+
+IntentService：创建一个工作线程来处理多线程任务
+
+Service需要主动调用stopSelft()来结束服务，而IntentService不需要（在所有intent被处理完后，系统会自动关闭服务）
+
+此外：
+
+1.IntentService为Service的onBind()方法提供了默认实现：返回null
+
+2.IntentService为Service的onStartCommand()方法提供了默认实现:将请求的intent天际都队列中
+
+IntentService与其他线程的区别
+
+IntentService内部采用了HandleThread实现，作用类似于后台线程
+
+于后台线程相比，IntentServie是一种后台服务，优势是：优先级高（不容易被系统杀死），从而保证任务的执行
+
+对于后台线程，若进程中没有活动的四大组件，则该线程的优先级非常低，容易被系统杀死，无法保证任务的执行
+
+参考链接：http://www.jianshu.com/p/8a3c44a9173a
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

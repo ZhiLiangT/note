@@ -1,0 +1,23 @@
+path主要用来绘制负责的图形轮廓，比如折线，圆弧以及各种复杂图案
+
+主要方法：
+reset()
+lineTo(float x,float y)
+moveTo(float x,float y)
+close()
+path.addArc(oval,startAngle,sweepAngle)
+arcTo(RectF oval,float startAngle,float sweepAngle)
+quadTo(float x1,float y1,folat x2, float y2)
+addCircle(RectF oval,Path.Direction dir)
+addPath(Path src,float dx,float dy)
+
+reset()方法：
+清除path设置的所有属性
+lineTo(float x,float y)方法：
+lineTo(float x,float y)方法用于从当前轮廓点绘制一条线段到x,y点：
+
+
+
+
+
+
